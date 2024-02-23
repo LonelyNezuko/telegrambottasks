@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "nodemon ./source/main.ts"
+    "start": "npm run build && nodemon ./distribute/main.js",
+    "build": "tsc --build"
   },
   "author": "",
   "license": "ISC",
