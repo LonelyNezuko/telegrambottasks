@@ -1,0 +1,1 @@
+export const TelegramToken: string = 'YOUR_TELEGRAM_BOT_TOKEN'
