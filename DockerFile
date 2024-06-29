@@ -1,0 +1,10 @@
+FROM node:21
+
+COPY . ./usr/src/telegrambottasks
+WORKDIR /usr/src/telegrambottasks
+
+RUN npm install
+
+EXPOSE 12750
+
+CMD [ "npm", "start" ]

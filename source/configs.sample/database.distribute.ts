@@ -2,11 +2,11 @@ import { DataSourceOptions } from "typeorm";
 
 export const DatabaseConfigDistribute: DataSourceOptions = {
     type: "mysql",
-    host: "HOST_YOUR_DATABASE_SERVER", // localhost - if it runs on a local computer
-    port: 3306, // default port mysql
-    username: "USERNAME_YOUR_DATABASE_SERVER",
-    password: "PASSWORD_FROM_USER_YOUR_DATABASE_SERVER",
-    database: "DATABASE_NAME_YOUR",
+    host: "tbt_database",
+    port: 3306,
+    username: "telegrambottasks",
+    password: "orc8lUA7WA9bJgMZgy53OaqpjRPfPCIMDUUJ4CF1",
+    database: "telegrambottasks",
     entities: [__dirname + "/../entity/*{.ts,.js}"],
     synchronize: true,
 }

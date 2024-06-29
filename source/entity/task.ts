@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('tasks')
 export class Task {
@@ -16,4 +16,7 @@ export class Task {
 
     @Column()
     priority?: number
+
+    @CreateDateColumn({ nullable: true, default: null })
+    expriesAt: Date
 }

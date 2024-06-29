@@ -6,6 +6,11 @@ import Services from "."
 import Logger from "@modules/logger"
 import sendDefaultActionMenu from "./sendDefaultActionMenu"
 
+import Moment from 'moment'
+import 'moment/min/locales'
+
+Moment.locale('ru')
+
 class ShowTaskList extends Services {
     private started: boolean = false
     private step: number = null
@@ -169,8 +174,11 @@ class ShowTaskList extends Services {
         this.taskSelected = null
 
         tasks.map((item: Task, i: number) => {
+            let date: string = null
+            if(item.expriesAt) date = Moment(item.expriesAt).format('DD.MM.YYYY, HH:mm')
+
             this.tasksReplyMarkup.push([{
-                text: (i + 1) + '. ' + item.title
+                text: (i + 1) + '. ' + item.title// + (date ? (' - ' + date) : ' - Без времени')
             }])
         })
 
@@ -215,10 +223,10 @@ class ShowTaskList extends Services {
 
         await this.deleteTask(task)
 
-        this.step = 3
-        BotAPI.sendMessage(this.chatid, "Задача была успешно помечена, как 'выполненная'. Хотите продолжить просмотр активных задач?", {
-            reply_markup: this.replyMarkupContinue
-        })
+        // this.step = 3
+        // BotAPI.sendMessage(this.chatid, "Задача была успешно помечена, как 'выполненная'. Хотите продолжить просмотр активных задач?", {
+        //     reply_markup: this.replyMarkupContinue
+        // })
     }
 
     async changeTaskPriority(task: Task, to: string) {
@@ -284,9 +292,11 @@ class ShowTaskList extends Services {
             return sendDefaultActionMenu(this.chatid)
         }
 
-        // this.step = 3
+        this.step = 3
 
-        const result = await mysqlManager.delete(Task, task)
+        const result = await mysqlManager.delete(Task, {
+            id: task.id
+        })
         if(!result) {
             return BotAPI.sendMessage(this.chatid, "Задача не была удален. Хотите продолжить просмотр активных задач?", {
                 reply_markup: this.replyMarkupContinue

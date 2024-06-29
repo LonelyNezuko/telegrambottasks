@@ -1,0 +1,35 @@
+services:
+    database:
+        container_name: tbt_database
+        image: mariadb:10.4
+        restart: always
+        environment:
+            MARIADB_ROOT_PASSWORD: root
+            MARIADB_DATABASE: telegrambottasks
+            MARIADB_USER: telegrambottasks
+            MARIADB_PASSWORD: orc8lUA7WA9bJgMZgy53OaqpjRPfPCIMDUUJ4CF1
+        ports:
+            - 12700:3306
+        # command: --init-file /usr/src/telegrambottasks/docker/databaseinit.sql
+        volumes:
+            - data_database:/var/lib/mysql
+            - ./docker/databaseInit.sql:/usr/src/telegrambottasks/docker/databaseinit.sql
+
+    bot:
+        container_name: tbt
+        build: 
+            dockerfile: DockerFile
+            context: ./
+        restart: always
+        ports:
+            - 12750:12750
+        env_file:
+            - ./.env
+        depends_on:
+            - database
+        volumes:
+            - data_nodemodules:/usr/src/telegrambottasks/node_modules
+        
+volumes:
+    data_database: null
+    data_nodemodules: null

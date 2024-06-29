@@ -5,10 +5,12 @@ import BotAPI from "source/telegramapi.init";
 import { mysqlManager } from "@database/init";
 import Logger from "@modules/logger";
 import sendDefaultActionMenu from "./sendDefaultActionMenu";
+import * as datetime from 'date-and-time';
 
 class CreateTask extends Services {
     private started: boolean = false
     private creating: boolean = false
+    private step: number = 0
     private replyMarkupCancel: TelegramBot.ReplyKeyboardMarkup = {
         keyboard: [[
             { text: "Отменить создание задачи" }
@@ -17,10 +19,11 @@ class CreateTask extends Services {
     }
 
     private taskSettings: Task
-    private taskSettingsDefault: Task = {
+    private static taskSettingsDefault: Task = {
         id: -1,
         creator_id: -1,
-        title: ''
+        title: '',
+        expriesAt: null
     }
 
     init() {
@@ -42,8 +45,9 @@ class CreateTask extends Services {
         })
     
         this.started = true
+        this.step = 1
 
-        this.taskSettings = this.taskSettingsDefault
+        this.taskSettings = {...CreateTask.taskSettingsDefault}
         this.taskSettings.creator_id = this.user.id
 
         console.log('создание ивента')
@@ -52,7 +56,8 @@ class CreateTask extends Services {
 
     private finish(reason: string) {
         this.started = false
-        this.taskSettings = this.taskSettingsDefault
+        this.step = 0
+        this.taskSettings = {...CreateTask.taskSettingsDefault}
 
         BotAPI.off('message', message => this.onMessage(message))
 
@@ -62,10 +67,8 @@ class CreateTask extends Services {
     }
 
     onMessage(message: TelegramBot.Message) {
-        console.log('принятие ивента', this.started, this)
         if(!this.started)return false
 
-        console.log(message)
         if(message.text === 'Отменить создание задачи') {
             Logger.debug('(Services createTask) Отмена создания')
 
@@ -73,19 +76,29 @@ class CreateTask extends Services {
             sendDefaultActionMenu(this.chatid, "Создание задачи было отменено.")
         }
         else {
-            const status: boolean = this.setTitle(message.text)
-
-            Logger.debug("(Services createTask) Иное сообщение", {
-                status
-            })
-            if(this.setTitle(message.text) === true) {
-                BotAPI.sendMessage(this.chatid, "Создаю задачу...")
-                this.create()
+            if(this.step === 1) {
+                const status: boolean = this.setTitle(message.text)
+                if(status === true) {
+                    BotAPI.sendMessage(this.chatid, "Отлично, теперь выберите время задачи:\n\nФормат времени: день.месяц часы:минуты\nПример: 05.05 05:25\n\nЕсли время не нужно, напишите '!'")
+                    this.step = 2
+                }
+                else {
+                    BotAPI.sendMessage(this.chatid, "Максимальная длина названия: 144 символа\nМинимальная длина названия: 4 символа", {
+                        reply_markup: this.replyMarkupCancel
+                    })
+                }
             }
-            else if(status === false) {
-                BotAPI.sendMessage(this.chatid, "Максимальная длина названия: 144 символа\nМинимальная длина названия: 4 символа", {
-                    reply_markup: this.replyMarkupCancel
-                })
+            else if(this.step === 2) {
+                const status: boolean = this.setExpiresDate(message.text)
+                if(status === true) {
+                    BotAPI.sendMessage(this.chatid, "Создаю задачу...")
+                    this.create()
+                }
+                else {
+                    BotAPI.sendMessage(this.chatid, `Некорректное время.\nНапишите время в формате: день.месяц часы:минуты\n\nПример: 05.05 05:25`, {
+                        reply_markup: this.replyMarkupCancel
+                    })
+                }
             }
         }
 
@@ -106,6 +119,45 @@ class CreateTask extends Services {
 
         this.taskSettings.title = name
         return true
+    }
+    private setExpiresDate(date: string): boolean {
+        if(!this.started
+            || !this.taskSettings.creator_id || this.taskSettings.creator_id < 1) {
+            Logger.debug('(Services createTask) Ошибка установки времени окончания', {
+                started: this.started,
+                taskSettings: this.taskSettings
+            })
+            sendDefaultActionMenu(this.chatid)
+            return
+        }
+
+        if(date && date === '!') {
+            this.taskSettings.expriesAt = null
+            return true
+        }
+        if(!date || date.length < 4 || date.length > 25)return false
+
+        const parsedDate = datetime.parse(date, 'DD.MM HH:mm')
+        if(parsedDate) {
+            const
+                day = parsedDate.getDate(),
+                month = parsedDate.getMonth(),
+                hours = parsedDate.getHours(),
+                minutes = parsedDate.getMinutes()
+
+            if(!isNaN(day) && !isNaN(month)
+                && !isNaN(hours) && !isNaN(minutes)) {
+                const expiresDate = new Date()
+
+                expiresDate.setFullYear(new Date().getFullYear(), month, day)
+                expiresDate.setHours(hours, minutes, 0, 0)
+
+                this.taskSettings.expriesAt = expiresDate
+                return true
+            }
+        }
+
+        return false
     }
 
     private async create() {
